@@ -1,0 +1,361 @@
+# EVALUATION OF FINAL STUDY: Metaphor Effect and the CKC-R. 
+library(readr)
+library(psych)
+
+# Set directory: 
+setwd("SET AS YOU NEED")
+
+# IMPORT THE DATA: 
+# Use E: 
+E1 <- read_csv("DATA_FILE")
+
+E <- subset(E1, is.na(Q_RelevantIDDuplicate) & 'Duration (in seconds)' >= 120 & rstatus == "Complete")
+
+##############################################
+########### DEMOGRAPHICS ################
+
+# Gender: 28 = male, 29 = female, 30 = non-binary / third gender, 31 = not say, 32 = self-describe.
+table(E$Q13)
+table(E$Q13_TEXT)
+prop.table(table(E$Q13_32_TEXT))
+prop.table(table(E$Q13))
+
+print("Education: 1 = year 11 or below, 7 = year 12., 2 = cert iii/iv, 3 = diploma or advanced diploma, 4 = Bachelor degree, 6 = Graduate Diploma or Graduate Certificate., 5= Post Graduate, 8 = Prefer not to say")
+table(E$Q14)
+prop.table(table(E$Q14))
+
+# Not used: 
+#print("Religion important? 1 = yes, 2 = no")
+#table(E$Q12.3)
+
+# Income: 
+print("income: 1 = 0- 19999, 2 = 20000 - 39999, 3 = 40000 - 59000, 21 = 60000 - 79999, 22 = 80 000 - 99999, 23 = 100000- 119999, 24 = 120000 - 139999, 25 = 140000 - 159999, 26 = 160000 or more, 27 = prefer not to say")
+prop.table(table(E$Q15))
+table(E$Q15)
+
+#POLITICS: 
+print("1 = labour, 2 = liberal, 3 = greens, 4 = nationals")
+table(E$Q16)
+prop.table(table(E$Q16))
+
+# Age ;
+print("2 = 18-24, 3 = 25-34, 5 = 45-54, 6 = 55-64, 7 = 65-74, 8 = 75-84")
+table(E$Q5)
+prop.table(table(E$Q5))
+summary(E$Q5)
+describe(E$Q5)
+E$age <- E$Q5
+E$age
+
+E$age[E$Q5 == 2] <- 21
+E$age[E$Q5 == 3] <- 29.5
+E$age[E$Q5 == 4] <- 39.5
+E$age[E$Q5 == 5] <- 49.5
+E$age[E$Q5 == 6] <- 59.5
+E$age[E$Q5 == 7] <- 69.5
+E$age[E$Q5 == 8] <- 79.5
+E$age[E$Q5 == 9] <- 89.5
+
+describe(E$age)
+#############################################
+
+
+
+# CREATE TEH CKC-R SCORES: This is using the SEM model from study 1. 
+# E$ckcr <- predict(it8_fit, newdata = E)[,c("CKCr")] # This used the fit8 model from the validation study. 
+# change to just a sum: 
+E$ckcr <- E$furnhome + E$houseknow + E$housemiss + E$housesense + E$househistory + E$forceact + E$forcetries + E$forcelives + E$forcedirection + E$forcehuman + E$rocklives + E$moonalive + E$stoneslive + E$planets + E$skythunder + E$seaembraces + E$skydarkens + E$plannature + E$mindtouch + E$fearpoison + E$miserycompany
+
+describe(E$ckcr)
+hist(E$ckcr)
+
+omega(E[,c("furnhome","houseknow","housemiss","housesense","househistory","forceact","forcetries","forcelives","forcedirection","forcehuman","rocklives","moonalive","stoneslive","planets","skythunder","seaembraces","skydarkens","plannature","mindtouch","fearpoison","miserycompany")])
+
+
+# Check distribution of conditions (should be relatively equal): 
+# Q7 = beast. (2)
+# Q8 = Virus (1)
+# Q9 = None (0)
+# each participant was only given one condition so if the question is not empty, they fit that condition: 
+E$condition <- ifelse(!is.na(E$Q7), 2,
+                      ifelse(!is.na(E$Q8), 1,
+                             ifelse(!is.na(E$Q9), 0, NA)))
+
+table(E$condition)
+
+
+
+# condense the answers into a single column for ease of use (which option would they look at to decrease crime): 
+library(dplyr)
+E$answer <- coalesce(E$Q7, E$Q8, E$Q9)
+describe(E$answer)
+hist(E$answer)
+
+# create the respCategory: what condition do the responses reflect (according to our assumptions)? 1,2 = VIRUS (1), 3,4 = BEAST (2)
+E$respCategory <- ifelse(E$answer %in% c(1, 2), "1",
+                          ifelse(E$answer %in% c(3, 4), "2", NA))
+
+table(E$respCategory)
+
+library(ggplot2)
+my_colors <- c("blue", "green", "orange")
+
+
+
+# Assuming 'E' is data frame
+ggplot(data = E, aes(x = factor(answer), group = factor(condition), color = factor(condition))) +
+  geom_line(stat = "count", position = "dodge") +
+  labs(title = "RAW Responses by Condition",
+       x = "Answer",
+       y = "Count") +
+  theme_minimal()
+
+
+ggplot(data = E, aes(x = factor(respCategory), group = factor(condition), color = factor(condition))) +
+  geom_line(stat = "count", position = "dodge") +
+  labs(title = "Categorised Responses by Condition",
+       x = "Answer",
+       y = "Count") +
+  theme_minimal()
+
+
+# RAW answer grouped by condition: 
+ggplot(data = E, aes(x = answer, fill = factor(answer))) +
+  geom_bar(position = "dodge") +
+  facet_wrap(~ condition, ncol = 1) +
+  labs(title = "Grouped Bar Chart of Answers by Condition",
+       x = "Answer",
+       y = "Frequency") +
+  theme_minimal()
+
+
+# Categorised answer - grouped by condition: 
+ggplot(data = E, aes(x = condition, fill = respCategory)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Counts of BEAST and VIRUS by Condition",
+       x = "Condition",
+       y = "Count") +
+  theme_minimal()
+
+
+
+
+# FROM THE GRAPHS: minimal if any influence. 
+
+# run the GLM to confirm: 
+
+E$respCategory <- factor(E$respCategory, levels = c("1", "2"), labels = c("virus", "beast"))
+E$condition <- factor(E$condition, levels = c("2","1","0"), labels = c("ISbeast", "ISvirus","noFrame"))
+table(E$condition)
+table(E$respCategory, E$condition) 
+table(E$respCategory)
+
+glm_categorised <- glm(factor(respCategory) ~ factor(condition) + factor(condition)*ckcr, data = E, family = binomial(link = 'logit'))
+
+summary(glm_categorised)
+library(rsq)
+rsq(glm_categorised)
+# adjusted r2: 
+rsq(glm_categorised, adj=T)
+
+# Obtain model fit: 
+# Extract deviance values
+
+cond_null_deviance <- 1005.18 
+cond_residual_deviance <- 996.84 
+
+# Calculate pseudo-r2
+(glm_categorised$null.deviance - glm_categorised$deviance)/glm_categorised$null.deviance
+
+DescTools::PseudoR2(glm_categorised, which = "all")
+
+# Degrees of freedom
+cond_df_null <- 819
+cond_df_residual <- 814
+glm_categorised$df.null
+# Calculate chi-square statistic
+cond_chi_square <- cond_null_deviance - cond_residual_deviance
+
+# Calculate p-value
+cond_p_value <- pchisq(cond_chi_square, cond_df_null - cond_df_residual, lower.tail = FALSE)
+
+# Print results
+cat("Chi-square:", cond_chi_square, "\n")
+cat("Degrees of freedom:", cond_df_null - cond_df_residual, "\n")
+cat("P-value:", cond_p_value, "\n")
+
+### ADDITIONAL ANALYSIS: 
+
+# Raw responses:
+glm_raw<- glm(answer ~ condition, data = E)
+summary(glm_raw)
+
+# Obtain model fit: 
+# Extract deviance values
+null_deviance <- 781.34
+residual_deviance <- 779.24
+
+# Degrees of freedom
+df_null <- 819
+df_residual <- 817
+
+# Calculate chi-square statistic
+chi_square <- null_deviance - residual_deviance
+
+# Calculate p-value
+p_value <- pchisq(chi_square, df_null - df_residual, lower.tail = FALSE)
+
+# Print results
+cat("Chi-square:", chi_square, "\n")
+cat("Degrees of freedom:", df_null - df_residual, "\n")
+cat("P-value:", p_value, "\n")
+
+
+glm_raw_covariates <- glm(answer ~ condition*ckcr, data = E)
+summary(glm_raw_covariates)
+
+# STOP: HOW DO PEOPLE CATEGORISE THE OPTIONS? (1 = beast (enforce), 2 = virus (educate, understand))
+# ASKS THEM TO CATEGORISE OPTIONS AS ENFORCEMENT / UNDERSTANDING
+prop.table(table(E$Q11_1)) # expect category = 2
+prop.table(table(E$Q11_2)) # expect category = 2
+prop.table(table(E$Q11_3)) # expect category = 1
+table(E$Q11_3)
+binom.test(228, (228+185))
+prop.table(table(E$Q11_4)) # expect categpry = 1
+table(E$Q11_4)
+# Is the difference here significant or not? 
+binom.test(240, (173+240)) # p < .05 = yes difference significant - most people would say it's a beast.
+
+
+# STOP: HOW DO PEOPLE CATEGORISE THE OPTIONS? (1 = beast (enforce), 2 = virus (educate, understand))
+# COUNCIL QUESTION ASKING HOW SOMEONE WOULD ARGUE: 
+prop.table(table(E$Q12_1)) # WANT CATEGORY = 2
+prop.table(table(E$Q12_2)) # WANT CATEGORY = 2
+prop.table(table(E$Q12_3)) # WANT CATEGORY = 1
+prop.table(table(E$Q12_4)) # WANT CATEGORY = 1
+
+table(E$Q12_4)
+binom.test(244, (163+244)) # p < .05 = yes difference significant - most people would say it's a beast.
+
+#POLITICS: 
+
+ggplot(data = E, aes(x = Q16, fill = factor(answer))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Counts of BEAST and VIRUS by politics",
+       x = "Condition",
+       y = "Count") +
+  theme_minimal()
+
+# POLITICS AND RAW ANSWERS: 
+prop.table(table(factor(E$answer), E$Q16), margin = 1)
+prop.table(table(E$answer, E$Q16), margin = 2)
+
+# POLITICS AND CATEGORISED ANSWERS: 
+prop.table(table(factor(E$respCategory), E$Q16), margin = 2)
+
+
+# Function to calculate standard error
+calculate_se <- function(p, n) {
+  sqrt(p * (1 - p) / n)
+}
+
+# RAW RESPONSES (RAW ANSWERS): 
+prop.table(table(E$answer, E$Q16), margin = 2)
+raw_table_data <- table(E$Q16, E$answer)
+raw_proportions <- prop.table(raw_table_data, margin = 1)
+raw_se_values <- mapply(calculate_se, raw_proportions, raw_table_data)
+raw_table_data
+raw_proportions
+# Print the standard error values
+print(raw_se_values)
+
+
+# RAW RESPONSES (CATEGORISED ANSWERS): 
+prop.table(table(E$respCategory, E$Q16), margin = 2)
+raw_table_data1 <- table(E$Q16, E$respCategory)
+raw_proportions1 <- prop.table(raw_table_data1, margin = 1)
+raw_se_values1 <- mapply(calculate_se, raw_proportions1, raw_table_data1)
+raw_table_data1
+raw_proportions1
+# Print the standard error values
+print(raw_se_values1)
+
+
+# MANUAL CHECK: 
+sqrt(.25 * (1-.25)/95) # error in proportion answering 1
+
+prop.table(table(E$condition, E$respCategory), margin = 1)
+
+# POLITICS: 
+
+glm_politics <- glm(answer ~ factor(Q16), data = E)
+summary(glm_politics)
+confint(glm_politics)
+
+# Obtain model fit: 
+# Extract deviance values
+pol_null_deviance <- 781.34
+pol_residual_deviance <- 775.55
+
+# Degrees of freedom
+pol_df_null <- 819
+pol_df_residual <- 816
+
+# Calculate chi-square statistic
+pol_chi_square <- pol_null_deviance - pol_residual_deviance
+
+# Calculate p-value
+pol_p_value <- pchisq(pol_chi_square, pol_df_null - pol_df_residual, lower.tail = FALSE)
+
+# Print results
+cat("Chi-square:", pol_chi_square, "\n")
+cat("Degrees of freedom:", pol_df_null - pol_df_residual, "\n")
+cat("P-value:", pol_p_value, "\n")
+
+
+
+
+
+
+# FULL GLM MODEL CONTAINING BOTH POLITICS + CKCr using CATEGORISED RESPONSES: 
+
+glm_politics_cat <- glm(factor(respCategory) ~  factor(Q16), data = E, family = binomial(link = "logit"))
+summary (glm_politics_cat)
+confint(glm_politics_cat)
+
+# Obtain model fit: 
+# Extract deviance values
+polcat_null_deviance <- 1005.18
+polcat_residual_deviance <- 988.01
+
+# Degrees of freedom
+polcat_df_null <- 819
+polcat_df_residual <- 816
+
+# Calculate chi-square statistic
+polcat_chi_square <- polcat_null_deviance - polcat_residual_deviance
+
+# Calculate p-value
+polcat_p_value <- pchisq(polcat_chi_square, polcat_df_null - polcat_df_residual, lower.tail = FALSE)
+
+# Print results
+cat("Chi-square:", polcat_chi_square, "\n")
+cat("Degrees of freedom:", polcat_df_null - polcat_df_residual, "\n")
+cat("P-value:", polcat_p_value, "\n")
+
+# the politics to response category model is significant. 
+
+
+
+
+# OK then - lets check what happens when we ONLY look at people who categorised the same way we did: 
+
+EcatOK <- subset(E,(Q11_1 == 2 & Q11_2 == 2 & Q11_3 == 1 & Q11_4 == 1) | (Q12_1 == 2 & Q12_2 == 2 & Q12_3 == 1 & Q12_4 == 1))
+glm_category_expected <- glm(factor(respCategory) ~  factor(condition), data = EcatOK, family = binomial)
+summary (glm_category_expected)
+
+
+# Even if we restrict analysis to people who categorised as we did - there is no effect. 
+
+
+
